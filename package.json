@@ -1,5 +1,35 @@
 {
+  "name": "entregas-pet",
+  "version": "1.0.0",
+  "description": "Gerador de etiquetas de entrega para pets",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-packager . \"Entregas Pet\" --platform=win32 --arch=x64 --out=dist --overwrite --ignore=node_modules/@electron --ignore=dist --ignore=\\.git"
+  },
+  "build": {
+    "appId": "com.apetitpet.etiquetas",
+    "productName": "Entregas Pet",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "main.js",
+      "favicon.png",
+      "*_b64.txt"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "favicon.png"
+    }
+  },
   "dependencies": {
     "@fontsource/fredoka": "^5.2.10"
+  },
+  "devDependencies": {
+    "@electron/packager": "^19.1.0",
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
   }
 }
