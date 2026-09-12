@@ -111,9 +111,8 @@
 </div>
 
 <script>
-const SHEET_ID = '16aLq8UzMfWs78ewzGCmKvM_7DjL5IO7MqUce0BPb9SE';
-const API_KEY  = 'AIzaSyCDyW7kus9hKlENwRBn7txq-RoftQtv7Hw';
-const ABA      = 'novo';
+const SHEET_ID = '1QB5bL9W2VvQOZc1Rdi5LelvwB_8p3Vkx41ObxpEVmIg';
+const ABA      = 'clientes';
 
 let selecionado = null, qtd = 1, dadosCache = null;
 
@@ -143,17 +142,32 @@ function fmtBairro(b) {
 }
 async function carregarDados() {
   if (dadosCache) return dadosCache;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${ABA}!A:M?key=${API_KEY}`;
+  // Solicita somente os campos usados pela etiqueta. Dados pessoais das demais
+  // colunas (CPF, telefones, e-mail e CEP) não são enviados ao navegador.
+  const params = new URLSearchParams({
+    sheet: ABA,
+    tqx: 'out:json',
+    tq: 'select B,C,K,L,M,N',
+  });
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?${params}`;
   const res = await fetch(url);
-  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'Erro na API do Google'); }
-  dadosCache = (await res.json()).values || [];
+  if (!res.ok) throw new Error('A planilha não permitiu a leitura dos dados');
+  const texto = await res.text();
+  const inicio = texto.indexOf('('), fim = texto.lastIndexOf(')');
+  if (inicio < 0 || fim <= inicio) throw new Error('Resposta inválida do Google Sheets');
+  const resposta = JSON.parse(texto.slice(inicio + 1, fim));
+  if (resposta.status === 'error') throw new Error('Erro ao consultar a planilha');
+  const linhas = resposta.table?.rows || [];
+  dadosCache = [[], ...linhas.map(row =>
+    Array.from({ length: 6 }, (_, i) => row.c?.[i]?.v ?? '')
+  )];
   return dadosCache;
 }
 function parseLinha(row, i) {
   const g = n => String(row[n] || '').trim();
   const pets = g(1).split(/,| e | E |&|\+| \/ /).map(p => fmt(p.trim())).filter(Boolean);
   if (!pets.length) pets.push('Pet');
-  return { index:i, tutor:fmt(g(0)), pets, bairro:fmtBairro(g(12)), rua:fmt(g(9)), numero:g(10), comp:fmt(g(11)) };
+  return { index:i, tutor:fmt(g(0)), pets, bairro:fmtBairro(g(5)), rua:fmt(g(2)), numero:g(3), comp:fmt(g(4)) };
 }
 async function buscar() {
   const termo = document.getElementById('inp').value.trim();
